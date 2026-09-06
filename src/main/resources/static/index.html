@@ -551,6 +551,14 @@
         btn.addEventListener('click', () => setCurrencyFilter(btn.dataset.currency));
     });
 
+    function copyCardNumber(cardNumber, el) {
+        navigator.clipboard.writeText(cardNumber).then(() => {
+            const original = el.innerText;
+            el.innerText = 'Copied!';
+            setTimeout(() => { el.innerText = original; }, 1200);
+        });
+    }
+
     function renderCardsList(cards) {
         const listDiv = document.getElementById('cards-list');
         listDiv.innerHTML = '';
@@ -575,7 +583,7 @@
                             <div class="card-owner">${card.ownerName}</div>
                             <h6>Balance (${card.currency})</h6>
                         </div>
-                        <span class="card-num">•••• ${card.cardNumber.slice(-4)}</span>
+                        <span class="card-num" style="cursor: pointer;" onclick="copyCardNumber('${card.cardNumber}', this)" title="Click to copy full card number">•••• ${card.cardNumber.slice(-4)}</span>
                     </div>
                     <div class="balance-val">${sym}${formattedBalance}</div>
                 </div>
