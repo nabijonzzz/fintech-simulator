@@ -442,6 +442,8 @@
     function highlightTopGainer() {
         let topIndex = -1;
         let topChangePct = 0;
+        let bottomIndex = -1;
+        let bottomChangePct = 0;
 
         stocks.forEach((stock, index) => {
             const changePct = ((stock.price - stock.openPrice) / stock.openPrice) * 100;
@@ -450,10 +452,17 @@
                 topChangePct = changePct;
                 topIndex = index;
             }
+            if (changePct < bottomChangePct) {
+                bottomChangePct = changePct;
+                bottomIndex = index;
+            }
         });
 
         if (topIndex !== -1) {
             document.getElementById(`stock-badge-${topIndex}`).innerText = '🔥 Top Gainer';
+        }
+        if (bottomIndex !== -1) {
+            document.getElementById(`stock-badge-${bottomIndex}`).innerText = '📉 Top Loser';
         }
     }
 
