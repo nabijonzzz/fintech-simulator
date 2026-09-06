@@ -270,6 +270,7 @@
                         <div class="mb-4">
                             <label class="form-label">Beneficiary Card Number</label>
                             <input type="text" id="txTo" class="form-control form-control-dark" placeholder="Enter 16-digit number" autocomplete="off" required>
+                            <div id="txToCount" class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">0/16 digits</div>
                             <div id="txToInfo" class="info-box" style="display:none;"></div>
                         </div>
                         <div class="mb-4">
@@ -646,6 +647,7 @@
     document.getElementById('txTo').addEventListener('input', function() {
         this.value = this.value.replace(/\D/g, '').slice(0, 16);
         const num = this.value;
+        document.getElementById('txToCount').innerText = `${num.length}/16 digits`;
         const info = document.getElementById('txToInfo');
         if(num.length < 16) { info.style.display = 'none'; return; }
 
