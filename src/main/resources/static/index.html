@@ -324,7 +324,10 @@
 
                 <div id="tab-markets" class="d-none">
                     <div class="info-box mb-3">Simulated market data for demo purposes — not connected to a real feed.</div>
-                    <input type="text" id="stockSearch" class="form-control form-control-dark mb-3" placeholder="Search ticker or name...">
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="text" id="stockSearch" class="form-control form-control-dark" placeholder="Search ticker or name...">
+                        <button type="button" class="filter-btn" onclick="clearStockSearch()">✕</button>
+                    </div>
                     <div id="markets-list"></div>
                 </div>
 
@@ -467,6 +470,12 @@
         if (bottomIndex !== -1) {
             document.getElementById(`stock-badge-${bottomIndex}`).innerText = '📉 Top Loser';
         }
+    }
+
+    function clearStockSearch() {
+        const input = document.getElementById('stockSearch');
+        input.value = '';
+        input.dispatchEvent(new Event('input'));
     }
 
     document.getElementById('stockSearch').addEventListener('input', function() {
