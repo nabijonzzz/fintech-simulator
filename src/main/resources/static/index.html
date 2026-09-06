@@ -341,6 +341,9 @@
     const MY_OWNER_NAME = "Nabijon Nazarov";
     let cachedCards = [];
     let activeCurrencyFilter = 'ALL';
+    try {
+        activeCurrencyFilter = localStorage.getItem('echo_currency_filter') || 'ALL';
+    } catch (e) { /* localStorage unavailable, fall back to ALL */ }
 
     // Simulated stock data for the Markets tab — display only, not tied to any real feed.
     let stocks = [
@@ -539,6 +542,7 @@
 
     function setCurrencyFilter(currency) {
         activeCurrencyFilter = currency;
+        try { localStorage.setItem('echo_currency_filter', currency); } catch (e) { /* ignore */ }
 
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.currency === currency);
@@ -546,6 +550,10 @@
 
         renderCardsList(cachedCards);
     }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.currency === activeCurrencyFilter);
+    });
 
     document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => setCurrencyFilter(btn.dataset.currency));
