@@ -644,6 +644,7 @@
     document.getElementById('txAmount').addEventListener('input', checkSufficientFunds);
 
     document.getElementById('txTo').addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 16);
         const num = this.value;
         const info = document.getElementById('txToInfo');
         if(num.length < 16) { info.style.display = 'none'; return; }
