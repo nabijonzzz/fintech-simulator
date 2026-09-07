@@ -291,7 +291,7 @@
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Amount</label>
-                            <input type="number" step="0.01" id="txAmount" class="form-control form-control-dark" placeholder="0.00" required>
+                            <input type="number" step="0.01" min="0.01" id="txAmount" class="form-control form-control-dark" placeholder="0.00" required>
                             <div id="txAmountWarning" class="info-box text-danger" style="display:none;">✕ Insufficient funds on source account</div>
                         </div>
                         <button type="submit" id="txSubmitBtn" class="btn btn-echo w-100">Confirm & Send</button>
@@ -314,7 +314,7 @@
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Amount to Sell</label>
-                            <input type="number" step="0.01" id="exAmount" class="form-control form-control-dark" placeholder="0.00" required>
+                            <input type="number" step="0.01" min="0.01" id="exAmount" class="form-control form-control-dark" placeholder="0.00" required>
                         </div>
                         
                         <div id="liveExchangeRate" class="live-rate-box d-none">
