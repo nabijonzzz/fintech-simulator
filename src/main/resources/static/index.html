@@ -315,6 +315,7 @@
                         <div class="mb-4">
                             <label class="form-label">Amount to Sell</label>
                             <input type="number" step="0.01" min="0.01" id="exAmount" class="form-control form-control-dark" placeholder="0.00" required>
+                            <div id="exAmountWarning" class="info-box text-danger" style="display:none;">✕ Insufficient funds on debit account</div>
                         </div>
                         
                         <div id="liveExchangeRate" class="live-rate-box d-none">
@@ -733,10 +734,15 @@
         const toCardNum = exToSelect.value;
         const rateBox = document.getElementById('liveExchangeRate');
         const submitBtn = document.getElementById('exSubmitBtn');
+        const warning = document.getElementById('exAmountWarning');
         const sameCard = fromCardNum && fromCardNum === toCardNum;
 
-        submitBtn.disabled = sameCard;
-        submitBtn.style.opacity = sameCard ? '0.5' : '1';
+        const fromCardForCheck = cachedCards.find(c => c.cardNumber === fromCardNum);
+        const insufficient = fromCardForCheck && amount > 0 && amount > fromCardForCheck.balance;
+
+        warning.style.display = insufficient ? 'block' : 'none';
+        submitBtn.disabled = sameCard || insufficient;
+        submitBtn.style.opacity = (sameCard || insufficient) ? '0.5' : '1';
 
         if (!amount || !fromCardNum || !toCardNum || fromCardNum === toCardNum) {
             rateBox.classList.add('d-none');
