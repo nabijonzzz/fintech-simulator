@@ -295,6 +295,7 @@
                             <div id="txAmountWarning" class="info-box text-danger" style="display:none;">✕ Insufficient funds on source account</div>
                         </div>
                         <button type="submit" id="txSubmitBtn" class="btn btn-echo w-100">Confirm & Send</button>
+                        <button type="button" class="btn w-100 mt-2" style="background:transparent; border:1px solid var(--border-color); color:var(--text-secondary);" onclick="clearTransferForm()">Clear</button>
                     </form>
                 </div>
 
@@ -727,6 +728,16 @@
         warning.style.display = insufficient ? 'block' : 'none';
         submitBtn.disabled = insufficient;
         submitBtn.style.opacity = insufficient ? '0.5' : '1';
+    }
+
+    function clearTransferForm() {
+        document.getElementById('transferForm').reset();
+        document.getElementById('txAmountWarning').style.display = 'none';
+        document.getElementById('txToInfo').style.display = 'none';
+        document.getElementById('txToCount').innerText = '0/16 digits';
+        const submitBtn = document.getElementById('txSubmitBtn');
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
     }
 
     document.getElementById('txFrom').addEventListener('change', checkSufficientFunds);
