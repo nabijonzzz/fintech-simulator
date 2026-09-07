@@ -335,7 +335,10 @@
                 </div>
                 <div id="tab-history" class="d-none">
                     <div id="history-loading" class="text-muted small">Loading transaction history...</div>
-                    <div id="history-count" class="text-muted small mb-2"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div id="history-count" class="text-muted small"></div>
+                        <button type="button" class="filter-btn" onclick="exportHistoryCsv()">Export CSV</button>
+                    </div>
                     <div id="history-list"></div>
                 </div>
 
@@ -644,6 +647,26 @@
         });
     }
 
+    let lastHistoryData = [];
+
+    function exportHistoryCsv() {
+        if (lastHistoryData.length === 0) return;
+
+        const header = 'Date,Type,Status,From Card,To Card,Requested Amount,From Currency,Settled Amount,To Currency\n';
+        const rows = lastHistoryData.map(tx => [
+            tx.createdAt, tx.type, tx.status, tx.fromCard, tx.toCard,
+            tx.requestedAmount, tx.fromCurrency || '', tx.settledAmount || '', tx.toCurrency || ''
+        ].join(',')).join('\n');
+
+        const blob = new Blob([header + rows], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'transaction-history.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
     function loadTransactionHistory() {
         document.getElementById('history-loading').style.display = 'block';
 
@@ -655,6 +678,7 @@
                 results.flat().forEach(tx => merged.set(tx.id, tx));
                 const sorted = Array.from(merged.values())
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                lastHistoryData = sorted;
 
                 const listDiv = document.getElementById('history-list');
                 const countDiv = document.getElementById('history-count');
