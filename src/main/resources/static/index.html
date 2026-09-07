@@ -391,6 +391,17 @@
         }
     }
 
+    function timeAgo(date) {
+        const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
+
     function formatCurrencyValue(value) {
         return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -701,13 +712,15 @@
                     const amountText = isFailed
                         ? (tx.failureReason || 'Declined')
                         : `${isOutgoing ? '-' : '+'}${formatCurrencyValue(isOutgoing ? tx.requestedAmount : tx.settledAmount)} ${isOutgoing ? tx.fromCurrency : tx.toCurrency}`;
-                    const when = new Date(tx.createdAt).toLocaleString();
+                    const txDate = new Date(tx.createdAt);
+                    const when = txDate.toLocaleString();
+                    const relative = timeAgo(txDate);
 
                     return `
                         <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border-color);">
                             <div>
                                 <div class="small fw-semibold">${label} • •••• ${otherCard.slice(-4)}</div>
-                                <div class="text-muted" style="font-size: 0.75rem;">${when}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;" title="${when}">${relative}</div>
                             </div>
                             <div class="fw-semibold" style="color: ${statusColor}; font-size: 0.85rem;">${amountText}</div>
                         </div>
