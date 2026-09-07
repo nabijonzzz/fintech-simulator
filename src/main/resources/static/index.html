@@ -437,13 +437,20 @@
         });
     }
 
-    function updateStockDisplay(index) {
+    function updateStockDisplay(index, previousPrice) {
         const stock = stocks[index];
         const changePct = ((stock.price - stock.openPrice) / stock.openPrice) * 100;
         const changeColor = changePct >= 0 ? '#34d399' : '#f87171';
         const changeSign = changePct >= 0 ? '+' : '';
 
-        document.getElementById(`stock-price-${index}`).innerText = `$${formatCurrencyValue(stock.price)}`;
+        const priceEl = document.getElementById(`stock-price-${index}`);
+        priceEl.innerText = `$${formatCurrencyValue(stock.price)}`;
+
+        if (previousPrice !== undefined && previousPrice !== stock.price) {
+            const flashClass = stock.price > previousPrice ? 'rate-up' : 'rate-down';
+            priceEl.classList.add(flashClass);
+            setTimeout(() => priceEl.classList.remove(flashClass), 600);
+        }
 
         const changeEl = document.getElementById(`stock-change-${index}`);
         changeEl.innerText = `${changeSign}${changePct.toFixed(2)}%`;
@@ -451,13 +458,15 @@
     }
 
     function simulateStockMovement() {
+        const previousPrices = stocks.map(stock => stock.price);
+
         stocks.forEach(stock => {
             const change = (Math.random() - 0.5) * (stock.price * 0.004);
             stock.price = Math.max(0.01, parseFloat((stock.price + change).toFixed(2)));
         });
 
         if (!document.getElementById('tab-markets').classList.contains('d-none')) {
-            stocks.forEach((stock, index) => updateStockDisplay(index));
+            stocks.forEach((stock, index) => updateStockDisplay(index, previousPrices[index]));
             highlightTopGainer();
         }
     }
