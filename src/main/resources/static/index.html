@@ -463,6 +463,7 @@
 
         if (previousPrice !== undefined && previousPrice !== stock.price) {
             const flashClass = stock.price > previousPrice ? 'rate-up' : 'rate-down';
+            priceEl.classList.remove('rate-up', 'rate-down');
             priceEl.classList.add(flashClass);
             setTimeout(() => priceEl.classList.remove(flashClass), 600);
         }
