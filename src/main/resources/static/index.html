@@ -441,7 +441,7 @@
         const changeColor = changePct >= 0 ? '#34d399' : '#f87171';
         const changeSign = changePct >= 0 ? '+' : '';
 
-        document.getElementById(`stock-price-${index}`).innerText = `$${stock.price.toFixed(2)}`;
+        document.getElementById(`stock-price-${index}`).innerText = `$${formatCurrencyValue(stock.price)}`;
 
         const changeEl = document.getElementById(`stock-change-${index}`);
         changeEl.innerText = `${changeSign}${changePct.toFixed(2)}%`;
