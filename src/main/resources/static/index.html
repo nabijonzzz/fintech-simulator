@@ -345,6 +345,7 @@
                         <button type="button" class="filter-btn" onclick="clearStockSearch()">✕</button>
                     </div>
                     <div id="markets-list"></div>
+                    <div id="markets-updated" class="text-muted" style="font-size: 0.75rem; margin-top: 8px;"></div>
                 </div>
 
                 <div id="statusMessage" class="alert mt-4 d-none" role="alert" style="background:rgba(26,28,32,0.8); border-radius:8px; font-size:0.9rem;"></div>
@@ -486,6 +487,9 @@
         if (bottomIndex !== -1) {
             document.getElementById(`stock-badge-${bottomIndex}`).innerText = '📉 Top Loser';
         }
+
+        document.getElementById('markets-updated').innerText =
+            `Last updated: ${new Date().toLocaleTimeString()}`;
     }
 
     function clearStockSearch() {
