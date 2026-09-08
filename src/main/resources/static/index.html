@@ -758,6 +758,7 @@
         document.getElementById('txAmountWarning').style.display = 'none';
         document.getElementById('txToInfo').style.display = 'none';
         document.getElementById('txToCount').innerText = '0/16 digits';
+        document.getElementById('txTo').style.borderColor = 'var(--border-color)';
         const submitBtn = document.getElementById('txSubmitBtn');
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
@@ -771,19 +772,23 @@
         const num = this.value;
         document.getElementById('txToCount').innerText = `${num.length}/16 digits`;
         const info = document.getElementById('txToInfo');
+        this.style.borderColor = 'var(--border-color)';
         if(num.length < 16) { info.style.display = 'none'; return; }
 
+        const input = this;
         fetch(`/api/card/${num}`)
         .then(r => { if(!r.ok) throw new Error(); return r.json(); })
         .then(card => {
             info.style.display = 'block';
             info.className = "info-box text-success";
             info.innerText = `✓ Beneficiary Verified: ${card.ownerName}`;
+            input.style.borderColor = '#34d399';
         })
         .catch(() => {
             info.style.display = 'block';
             info.className = "info-box text-danger";
             info.innerText = "✕ Invalid routing address / Account not found";
+            input.style.borderColor = '#f87171';
         });
     });
 
@@ -879,6 +884,7 @@
                     status.innerText = `✓ ${data.message}`;
                     form.reset();
                     document.getElementById('txToInfo').style.display = 'none';
+                    document.getElementById('txTo').style.borderColor = 'var(--border-color)';
                     document.getElementById('liveExchangeRate').classList.add('d-none');
                     loadDashboard();
                 } else {
