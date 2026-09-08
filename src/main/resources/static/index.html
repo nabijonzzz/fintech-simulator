@@ -350,6 +350,7 @@
                         <button type="button" class="filter-btn" onclick="clearStockSearch()">✕</button>
                     </div>
                     <div id="markets-list"></div>
+                    <div id="markets-no-results" class="text-muted small d-none">No stocks match your search.</div>
                     <div id="markets-updated" class="text-muted" style="font-size: 0.75rem; margin-top: 8px;"></div>
                 </div>
 
@@ -526,12 +527,15 @@
 
     document.getElementById('stockSearch').addEventListener('input', function() {
         const query = this.value.trim().toLowerCase();
+        let anyMatch = false;
         stocks.forEach((stock, index) => {
             const card = document.getElementById(`stock-${index}`);
             if (!card) return;
             const matches = stock.ticker.toLowerCase().includes(query) || stock.name.toLowerCase().includes(query);
             card.style.display = matches ? '' : 'none';
+            if (matches) anyMatch = true;
         });
+        document.getElementById('markets-no-results').classList.toggle('d-none', anyMatch);
     });
 
     function loadDashboard() {
