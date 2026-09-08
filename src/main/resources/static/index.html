@@ -347,7 +347,7 @@
                     <div class="info-box mb-3">Simulated market data for demo purposes — not connected to a real feed.</div>
                     <div class="d-flex gap-2 mb-3">
                         <input type="text" id="stockSearch" class="form-control form-control-dark" placeholder="Search ticker or name...">
-                        <button type="button" class="filter-btn" onclick="clearStockSearch()">✕</button>
+                        <button type="button" class="filter-btn" onclick="clearStockSearch()" aria-label="Clear search">✕</button>
                     </div>
                     <div id="markets-list"></div>
                     <div id="markets-no-results" class="text-muted small d-none">No stocks match your search.</div>
@@ -650,7 +650,7 @@
                             <div class="card-owner">${card.ownerName}</div>
                             <h6>Balance (${card.currency})</h6>
                         </div>
-                        <span class="card-num" style="cursor: pointer;" onclick="copyCardNumber('${card.cardNumber}', this)" title="Click to copy full card number">•••• ${card.cardNumber.slice(-4)}</span>
+                        <span class="card-num" style="cursor: pointer;" onclick="copyCardNumber('${card.cardNumber}', this)" title="Click to copy full card number" aria-label="Copy full card number to clipboard">•••• ${card.cardNumber.slice(-4)}</span>
                     </div>
                     <div class="balance-val">${sym}${formattedBalance}</div>
                 </div>
