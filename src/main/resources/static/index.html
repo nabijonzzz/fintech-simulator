@@ -651,7 +651,7 @@
                             <div class="card-owner">${card.ownerName}</div>
                             <h6>Balance (${card.currency})</h6>
                         </div>
-                        <span class="card-num" style="cursor: pointer;" onclick="copyCardNumber('${card.cardNumber}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();copyCardNumber('${card.cardNumber}', this);}" title="Click to copy full card number" aria-label="Copy full card number to clipboard" role="button" tabindex="0">•••• ${card.cardNumber.slice(-4)}</span>
+                        <span class="card-num" style="cursor: pointer;" onclick="copyCardNumber('${card.cardNumber}', this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();copyCardNumber('${card.cardNumber}', this);}" title="Click to copy full card number" aria-label="Copy full card number to clipboard" role="button" tabindex="0" aria-live="polite">•••• ${card.cardNumber.slice(-4)}</span>
                     </div>
                     <div class="balance-val">${sym}${formattedBalance}</div>
                 </div>
