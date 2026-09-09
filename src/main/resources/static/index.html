@@ -287,12 +287,12 @@
                             <label class="form-label">Beneficiary Card Number</label>
                             <input type="text" id="txTo" class="form-control form-control-dark" placeholder="Enter 16-digit number" autocomplete="off" required>
                             <div id="txToCount" class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">0/16 digits</div>
-                            <div id="txToInfo" class="info-box" style="display:none;"></div>
+                            <div id="txToInfo" class="info-box" style="display:none;" aria-live="polite"></div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Amount</label>
                             <input type="number" step="0.01" min="0.01" id="txAmount" class="form-control form-control-dark" placeholder="0.00" required>
-                            <div id="txAmountWarning" class="info-box text-danger" style="display:none;">✕ Insufficient funds on source account</div>
+                            <div id="txAmountWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Insufficient funds on source account</div>
                         </div>
                         <button type="submit" id="txSubmitBtn" class="btn btn-echo w-100">Confirm & Send</button>
                         <button type="button" class="btn w-100 mt-2" style="background:transparent; border:1px solid var(--border-color); color:var(--text-secondary);" onclick="clearTransferForm()">Clear</button>
@@ -316,7 +316,7 @@
                         <div class="mb-4">
                             <label class="form-label">Amount to Sell</label>
                             <input type="number" step="0.01" min="0.01" id="exAmount" class="form-control form-control-dark" placeholder="0.00" required>
-                            <div id="exAmountWarning" class="info-box text-danger" style="display:none;">✕ Insufficient funds on debit account</div>
+                            <div id="exAmountWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Insufficient funds on debit account</div>
                         </div>
                         
                         <div id="liveExchangeRate" class="live-rate-box d-none">
