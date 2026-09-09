@@ -332,6 +332,7 @@
                         </div>
 
                         <button type="submit" id="exSubmitBtn" class="btn btn-echo w-100 mt-4" style="background: var(--accent-orange);">Execute Exchange</button>
+                        <button type="button" class="btn w-100 mt-2" style="background:transparent; border:1px solid var(--border-color); color:var(--text-secondary);" onclick="clearExchangeForm()">Clear</button>
                     </form>
                 </div>
                 <div id="tab-history" class="d-none">
@@ -760,6 +761,16 @@
         document.getElementById('txToCount').innerText = '0/16 digits';
         document.getElementById('txTo').style.borderColor = 'var(--border-color)';
         const submitBtn = document.getElementById('txSubmitBtn');
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+    }
+
+    function clearExchangeForm() {
+        document.getElementById('exchangeForm').reset();
+        document.getElementById('exAmountWarning').style.display = 'none';
+        document.getElementById('liveExchangeRate').classList.add('d-none');
+        lastCalculatedValue = 0;
+        const submitBtn = document.getElementById('exSubmitBtn');
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
     }
