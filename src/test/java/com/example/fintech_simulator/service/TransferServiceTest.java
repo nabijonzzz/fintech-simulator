@@ -125,6 +125,26 @@ class TransferServiceTest {
     }
 
     @Test
+    void convertReturnsSameAmountForIdenticalCurrency() {
+        assertThat(transferService.convert(new BigDecimal("42.5"), "USD", "USD"))
+                .isEqualByComparingTo("42.50");
+    }
+
+    @Test
+    void convertAppliesTheFixedRateTable() {
+        // EUR->USD at 1.10, GBP->USD at 1.30, and a cross rate EUR->GBP
+        assertThat(transferService.convert(new BigDecimal("100"), "EUR", "USD")).isEqualByComparingTo("110.00");
+        assertThat(transferService.convert(new BigDecimal("100"), "GBP", "USD")).isEqualByComparingTo("130.00");
+        assertThat(transferService.convert(new BigDecimal("130"), "GBP", "EUR")).isEqualByComparingTo("153.64");
+    }
+
+    @Test
+    void convertRejectsAnUnknownCurrency() {
+        assertThrows(IllegalArgumentException.class,
+                () -> transferService.convert(new BigDecimal("10"), "USD", "JPY"));
+    }
+
+    @Test
     void recordsCompletedTransactionWithAllFieldsPopulated() {
         Card from = card("1111111111111111", "A", "100.00", "EUR");
         Card to = card("2222222222222222", "A", "0.00", "USD");
