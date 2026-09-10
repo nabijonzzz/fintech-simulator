@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -120,5 +121,24 @@ class TransferServiceTest {
     void rejectsSelfTransfer() {
         assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
                 "1111111111111111", "1111111111111111", new BigDecimal("10.00"), TransactionType.TRANSFER));
+    }
+
+    @Test
+    void getAllCardsReturnsEveryCardFromTheRepository() {
+        Card a = card("1111111111111111", "A", "10.00", "USD");
+        Card b = card("2222222222222222", "B", "20.00", "EUR");
+        when(cardRepository.findAll()).thenReturn(List.of(a, b));
+
+        assertThat(transferService.getAllCards()).containsExactly(a, b);
+    }
+
+    @Test
+    void getHistoryQueriesTransactionsForTheCardOnBothSides() {
+        Transaction tx = new Transaction();
+        tx.setId("t1");
+        when(transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc("1111111111111111", "1111111111111111"))
+                .thenReturn(List.of(tx));
+
+        assertThat(transferService.getHistory("1111111111111111")).containsExactly(tx);
     }
 }
