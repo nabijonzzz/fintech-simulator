@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -121,6 +122,33 @@ class TransferServiceTest {
     void rejectsSelfTransfer() {
         assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
                 "1111111111111111", "1111111111111111", new BigDecimal("10.00"), TransactionType.TRANSFER));
+    }
+
+    @Test
+    void recordsCompletedTransactionWithAllFieldsPopulated() {
+        Card from = card("1111111111111111", "A", "100.00", "EUR");
+        Card to = card("2222222222222222", "A", "0.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
+        when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("10.00"), TransactionType.EXCHANGE);
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        Transaction saved = captor.getValue();
+
+        assertThat(saved.getId()).isNotBlank();
+        assertThat(saved.getFromCard()).isEqualTo("1111111111111111");
+        assertThat(saved.getToCard()).isEqualTo("2222222222222222");
+        assertThat(saved.getType()).isEqualTo(TransactionType.EXCHANGE);
+        assertThat(saved.getRequestedAmount()).isEqualByComparingTo("10.00");
+        assertThat(saved.getFromCurrency()).isEqualTo("EUR");
+        assertThat(saved.getToCurrency()).isEqualTo("USD");
+        assertThat(saved.getSettledAmount()).isEqualByComparingTo("11.00");
+        assertThat(saved.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+        assertThat(saved.getCreatedAt()).isNotNull();
     }
 
     @Test
