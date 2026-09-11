@@ -3,6 +3,8 @@ package com.example.fintech_simulator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +56,22 @@ class TransferFlowIntegrationTest {
                 .isEqualByComparingTo("75.00");
         assertThat(cardRepository.findById("9000000000000002").orElseThrow().getBalance())
                 .isEqualByComparingTo("25.00");
+    }
+
+    @Test
+    void listsAllCardsIncludingOnesJustCreated() {
+        Card card = new Card();
+        card.setCardNumber("9000000000000003");
+        card.setOwnerName("Test Lister");
+        card.setBalance(new BigDecimal("15.00"));
+        card.setCurrency("USD");
+        cardRepository.save(card);
+
+        ResponseEntity<Card[]> response = restTemplate.getForEntity("/api/cards", Card[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Card> cards = Arrays.asList(response.getBody());
+        assertThat(cards).extracting(Card::getCardNumber).contains("9000000000000003");
     }
 
     @Test
