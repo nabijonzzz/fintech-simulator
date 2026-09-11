@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import com.example.fintech_simulator.dto.TransferRequest;
 import com.example.fintech_simulator.dto.TransferResponse;
 import com.example.fintech_simulator.entity.Card;
+import com.example.fintech_simulator.entity.Transaction;
 import com.example.fintech_simulator.repository.CardRepository;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -72,6 +73,39 @@ class TransferFlowIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<Card> cards = Arrays.asList(response.getBody());
         assertThat(cards).extracting(Card::getCardNumber).contains("9000000000000003");
+    }
+
+    @Test
+    void historyEndpointReturnsTheTransactionAfterATransfer() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000004");
+        from.setOwnerName("Test History Sender");
+        from.setBalance(new BigDecimal("50.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000005");
+        to.setOwnerName("Test History Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest request = new TransferRequest();
+        request.setFromCard("9000000000000004");
+        request.setToCard("9000000000000005");
+        request.setAmount(new BigDecimal("15.00"));
+        restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+
+        ResponseEntity<Transaction[]> response =
+                restTemplate.getForEntity("/api/transactions/9000000000000004", Transaction[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Transaction> history = Arrays.asList(response.getBody());
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).getFromCard()).isEqualTo("9000000000000004");
+        assertThat(history.get(0).getToCard()).isEqualTo("9000000000000005");
+        assertThat(history.get(0).getRequestedAmount()).isEqualByComparingTo("15.00");
     }
 
     @Test
