@@ -14,6 +14,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import com.example.fintech_simulator.dto.ErrorResponse;
 import com.example.fintech_simulator.dto.TransferRequest;
 import com.example.fintech_simulator.dto.TransferResponse;
 import com.example.fintech_simulator.entity.Card;
@@ -118,5 +119,23 @@ class TransferFlowIntegrationTest {
         ResponseEntity<String> response = restTemplate.postForEntity("/api/transfer", request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void errorResponseBodyHasTheExpectedShape() {
+        TransferRequest request = new TransferRequest();
+        request.setFromCard("not-a-card");
+        request.setToCard("9000000000000002");
+        request.setAmount(new BigDecimal("10.00"));
+
+        ResponseEntity<ErrorResponse> response =
+                restTemplate.postForEntity("/api/transfer", request, ErrorResponse.class);
+
+        ErrorResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getStatus()).isEqualTo(400);
+        assertThat(body.getError()).isEqualTo("Validation Failed");
+        assertThat(body.getMessage()).isNotBlank();
+        assertThat(body.getTimestamp()).isNotNull();
     }
 }
