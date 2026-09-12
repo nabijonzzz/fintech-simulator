@@ -880,10 +880,16 @@
             const status = document.getElementById('statusMessage');
             status.className = "alert mt-4 d-none";
 
+            // A fresh key per submit — if this exact request needs to be retried
+            // (e.g. after a network error), send the same key again so the
+            // backend won't move the money twice.
+            const payload = getPayload();
+            payload.idempotencyKey = crypto.randomUUID();
+
             fetch(`/api/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(getPayload())
+                body: JSON.stringify(payload)
             })
             .then(async r => ({ ok: r.ok, data: await r.json() }))
             .then(({ ok, data }) => {
