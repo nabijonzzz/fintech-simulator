@@ -60,16 +60,16 @@ public class TransferController {
 
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> makeTransfer(@Valid @RequestBody TransferRequest request) {
-        Transaction tx = transferService.transferMoney(
-                request.getFromCard(), request.getToCard(), request.getAmount(), TransactionType.TRANSFER);
+        Transaction tx = transferService.transferMoney(request.getFromCard(), request.getToCard(),
+                request.getAmount(), TransactionType.TRANSFER, request.getIdempotencyKey());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new TransferResponse(tx.getId(), tx.getStatus().name(), "Transfer Successful"));
     }
 
     @PostMapping("/exchange")
     public ResponseEntity<TransferResponse> makeExchange(@Valid @RequestBody ExchangeRequest request) {
-        Transaction tx = transferService.transferMoney(
-                request.getFromCard(), request.getToCard(), request.getAmount(), TransactionType.EXCHANGE);
+        Transaction tx = transferService.transferMoney(request.getFromCard(), request.getToCard(),
+                request.getAmount(), TransactionType.EXCHANGE, request.getIdempotencyKey());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new TransferResponse(tx.getId(), tx.getStatus().name(), "Exchange Successful"));
     }
