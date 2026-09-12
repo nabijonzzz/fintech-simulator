@@ -3,6 +3,7 @@ package com.example.fintech_simulator.entity;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -33,4 +34,9 @@ public class Transaction {
 
     private String failureReason;
     private Instant createdAt;
+
+    // Lets a client safely retry a request (e.g. after a network timeout) without
+    // risking a duplicate transfer — see TransferService for how it's enforced.
+    @Column(unique = true)
+    private String idempotencyKey;
 }
