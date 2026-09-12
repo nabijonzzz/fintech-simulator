@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -66,6 +67,25 @@ public class TransferService {
 
     @Transactional
     public Transaction transferMoney(String fromCardNumber, String toCardNumber, BigDecimal amount, TransactionType type) {
+        return transferMoney(fromCardNumber, toCardNumber, amount, type, null);
+    }
+
+    @Transactional
+    public Transaction transferMoney(String fromCardNumber, String toCardNumber, BigDecimal amount,
+                                      TransactionType type, String idempotencyKey) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            Optional<Transaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                // Same request seen before (e.g. a client retry after a timeout) — replay
+                // its outcome instead of moving money a second time.
+                Transaction tx = existing.get();
+                if (tx.getStatus() == TransactionStatus.FAILED) {
+                    throw new IllegalArgumentException(tx.getFailureReason());
+                }
+                return tx;
+            }
+        }
+
         try {
             if (fromCardNumber.equals(toCardNumber)) {
                 throw new IllegalArgumentException("Cannot transfer to the same card");
@@ -101,6 +121,7 @@ public class TransferService {
             tx.setSettledAmount(settledAmount);
             tx.setStatus(TransactionStatus.COMPLETED);
             tx.setCreatedAt(Instant.now());
+            tx.setIdempotencyKey(idempotencyKey);
             return transactionRepository.save(tx);
 
         } catch (IllegalArgumentException ex) {
