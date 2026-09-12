@@ -119,6 +119,36 @@ class TransferServiceTest {
     }
 
     @Test
+    void replaysAnExistingCompletedTransactionInsteadOfMovingMoneyAgain() {
+        Transaction existing = new Transaction();
+        existing.setId("existing-tx");
+        existing.setStatus(TransactionStatus.COMPLETED);
+        when(transactionRepository.findByIdempotencyKey("key-1")).thenReturn(Optional.of(existing));
+
+        Transaction result = transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("10.00"), TransactionType.TRANSFER, "key-1");
+
+        assertThat(result).isSameAs(existing);
+        verify(cardRepository, never()).findById(any());
+        verify(cardRepository, never()).save(any());
+    }
+
+    @Test
+    void replaysTheSameFailureWhenRetriedWithTheSameKey() {
+        Transaction existing = new Transaction();
+        existing.setId("existing-tx");
+        existing.setStatus(TransactionStatus.FAILED);
+        existing.setFailureReason("Not enough money on sender card");
+        when(transactionRepository.findByIdempotencyKey("key-2")).thenReturn(Optional.of(existing));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("10.00"), TransactionType.TRANSFER, "key-2"));
+
+        assertThat(ex.getMessage()).isEqualTo("Not enough money on sender card");
+        verify(cardRepository, never()).findById(any());
+    }
+
+    @Test
     void rejectsSelfTransfer() {
         assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
                 "1111111111111111", "1111111111111111", new BigDecimal("10.00"), TransactionType.TRANSFER));
