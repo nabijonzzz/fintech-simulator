@@ -101,7 +101,7 @@ class TransferServiceTest {
         verify(cardRepository, never()).save(any());
         verify(auditLogger).logFailure(
                 eq("1111111111111111"), eq("2222222222222222"), eq(new BigDecimal("50.00")),
-                eq(TransactionType.TRANSFER), any());
+                eq(TransactionType.TRANSFER), any(), eq((String) null));
     }
 
     @Test

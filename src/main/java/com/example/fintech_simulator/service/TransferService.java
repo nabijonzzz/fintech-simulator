@@ -125,7 +125,7 @@ public class TransferService {
             return transactionRepository.save(tx);
 
         } catch (IllegalArgumentException ex) {
-            auditLogger.logFailure(fromCardNumber, toCardNumber, amount, type, ex.getMessage());
+            auditLogger.logFailure(fromCardNumber, toCardNumber, amount, type, ex.getMessage(), idempotencyKey);
             throw ex;
         }
     }
