@@ -110,6 +110,44 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void retryingWithTheSameIdempotencyKeyDoesNotMoveMoneyTwice() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000006");
+        from.setOwnerName("Test Idempotent Sender");
+        from.setBalance(new BigDecimal("100.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000007");
+        to.setOwnerName("Test Idempotent Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest request = new TransferRequest();
+        request.setFromCard("9000000000000006");
+        request.setToCard("9000000000000007");
+        request.setAmount(new BigDecimal("30.00"));
+        request.setIdempotencyKey("retry-key-1");
+
+        ResponseEntity<TransferResponse> firstResponse =
+                restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+        ResponseEntity<TransferResponse> secondResponse =
+                restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+
+        assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(secondResponse.getBody().getTransactionId())
+                .isEqualTo(firstResponse.getBody().getTransactionId());
+
+        assertThat(cardRepository.findById("9000000000000006").orElseThrow().getBalance())
+                .isEqualByComparingTo("70.00");
+        assertThat(cardRepository.findById("9000000000000007").orElseThrow().getBalance())
+                .isEqualByComparingTo("30.00");
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
