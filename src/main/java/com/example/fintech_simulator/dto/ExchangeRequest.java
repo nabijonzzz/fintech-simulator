@@ -20,4 +20,8 @@ public class ExchangeRequest {
     @NotNull
     @DecimalMin(value = "0.01", message = "amount must be greater than 0")
     private BigDecimal amount;
+
+    // Optional: lets a client safely retry the same request (e.g. after a
+    // timeout) without risking a duplicate exchange.
+    private String idempotencyKey;
 }
