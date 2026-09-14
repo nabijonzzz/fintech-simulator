@@ -135,6 +135,26 @@ class TransferServiceTest {
     }
 
     @Test
+    void firstRequestWithAKeyMovesMoneyAndStoresTheKey() {
+        Card from = card("1111111111111111", "A", "100.00", "USD");
+        Card to = card("2222222222222222", "B", "0.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
+        when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
+        when(transactionRepository.findByIdempotencyKey("fresh-key")).thenReturn(Optional.empty());
+        when(transactionRepository.saveAndFlush(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction result = transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("30.00"), TransactionType.TRANSFER, "fresh-key");
+
+        assertThat(from.getBalance()).isEqualByComparingTo("70.00");
+        assertThat(to.getBalance()).isEqualByComparingTo("30.00");
+        assertThat(result.getIdempotencyKey()).isEqualTo("fresh-key");
+        assertThat(result.getStatus()).isEqualTo(TransactionStatus.COMPLETED);
+        verify(cardRepository).save(from);
+        verify(cardRepository).save(to);
+    }
+
+    @Test
     void losingTheIdempotencyRaceReturnsTheWinnerWithoutMovingMoneyTwice() {
         Card from = card("1111111111111111", "A", "100.00", "USD");
         Card to = card("2222222222222222", "B", "0.00", "USD");
