@@ -18,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.example.fintech_simulator.entity.Card;
 import com.example.fintech_simulator.entity.Transaction;
@@ -130,6 +131,35 @@ class TransferServiceTest {
 
         assertThat(result).isSameAs(existing);
         verify(cardRepository, never()).findById(any());
+        verify(cardRepository, never()).save(any());
+    }
+
+    @Test
+    void losingTheIdempotencyRaceReturnsTheWinnerWithoutMovingMoneyTwice() {
+        Card from = card("1111111111111111", "A", "100.00", "USD");
+        Card to = card("2222222222222222", "B", "0.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
+        when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
+
+        Transaction winner = new Transaction();
+        winner.setId("winner-tx");
+        winner.setStatus(TransactionStatus.COMPLETED);
+
+        // First lookup finds nothing (so we proceed); by the time we try to
+        // reserve the key, a concurrent request has already won and committed.
+        when(transactionRepository.findByIdempotencyKey("race-key"))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(winner));
+        when(transactionRepository.saveAndFlush(any(Transaction.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        Transaction result = transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("10.00"), TransactionType.TRANSFER, "race-key");
+
+        assertThat(result).isSameAs(winner);
+        // Whoever loses the race must not touch balances at all.
+        assertThat(from.getBalance()).isEqualByComparingTo("100.00");
+        assertThat(to.getBalance()).isEqualByComparingTo("0.00");
         verify(cardRepository, never()).save(any());
     }
 
