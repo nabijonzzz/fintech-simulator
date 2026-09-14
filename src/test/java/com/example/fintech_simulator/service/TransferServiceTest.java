@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
 
 import com.example.fintech_simulator.entity.Card;
 import com.example.fintech_simulator.entity.Transaction;
@@ -36,12 +35,14 @@ class TransferServiceTest {
     TransactionRepository transactionRepository;
     @Mock
     TransactionAuditLogger auditLogger;
+    @Mock
+    IdempotencyKeyService idempotencyKeyService;
 
     TransferService transferService;
 
     @BeforeEach
     void setUp() {
-        transferService = new TransferService(cardRepository, transactionRepository, auditLogger);
+        transferService = new TransferService(cardRepository, transactionRepository, auditLogger, idempotencyKeyService);
     }
 
     private Card card(String number, String owner, String balance, String currency) {
@@ -141,7 +142,7 @@ class TransferServiceTest {
         when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
         when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
         when(transactionRepository.findByIdempotencyKey("fresh-key")).thenReturn(Optional.empty());
-        when(transactionRepository.saveAndFlush(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(idempotencyKeyService.reserve(any(Transaction.class))).thenReturn(true);
 
         Transaction result = transferService.transferMoney(
                 "1111111111111111", "2222222222222222", new BigDecimal("30.00"), TransactionType.TRANSFER, "fresh-key");
@@ -167,11 +168,9 @@ class TransferServiceTest {
 
         // First lookup finds nothing (so we proceed); by the time we try to
         // reserve the key, a concurrent request has already won and committed.
-        when(transactionRepository.findByIdempotencyKey("race-key"))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(winner));
-        when(transactionRepository.saveAndFlush(any(Transaction.class)))
-                .thenThrow(new DataIntegrityViolationException("duplicate key"));
+        when(transactionRepository.findByIdempotencyKey("race-key")).thenReturn(Optional.empty());
+        when(idempotencyKeyService.reserve(any(Transaction.class))).thenReturn(false);
+        when(idempotencyKeyService.findExisting("race-key")).thenReturn(Optional.of(winner));
 
         Transaction result = transferService.transferMoney(
                 "1111111111111111", "2222222222222222", new BigDecimal("10.00"), TransactionType.TRANSFER, "race-key");

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +24,16 @@ public class TransferService {
     private final CardRepository cardRepository;
     private final TransactionRepository transactionRepository;
     private final TransactionAuditLogger auditLogger;
+    private final IdempotencyKeyService idempotencyKeyService;
 
     public TransferService(CardRepository cardRepository,
                             TransactionRepository transactionRepository,
-                            TransactionAuditLogger auditLogger) {
+                            TransactionAuditLogger auditLogger,
+                            IdempotencyKeyService idempotencyKeyService) {
         this.cardRepository = cardRepository;
         this.transactionRepository = transactionRepository;
         this.auditLogger = auditLogger;
+        this.idempotencyKeyService = idempotencyKeyService;
     }
 
     public Card getCardDetails(String cardNumber) {
@@ -120,14 +122,16 @@ public class TransferService {
             tx.setIdempotencyKey(idempotencyKey);
 
             if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-                // Reserve the key — and flush immediately — before touching any
-                // balance, so a concurrent request with the same key fails here
-                // (via the unique constraint) instead of after money has moved.
-                try {
-                    transactionRepository.saveAndFlush(tx);
-                } catch (DataIntegrityViolationException raceLost) {
-                    return transactionRepository.findByIdempotencyKey(idempotencyKey)
-                            .orElseThrow(() -> raceLost);
+                // Reserve the key before touching any balance, so a concurrent
+                // request with the same key fails here (via the unique
+                // constraint) instead of after money has moved. Done in its own
+                // transaction — a failed unique-constraint insert leaves the
+                // session unusable for anything else in that same transaction.
+                boolean wonTheRace = idempotencyKeyService.reserve(tx);
+                if (!wonTheRace) {
+                    return idempotencyKeyService.findExisting(idempotencyKey)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Idempotency key reservation failed but no existing record was found"));
                 }
 
                 fromCard.setBalance(fromCard.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP));
