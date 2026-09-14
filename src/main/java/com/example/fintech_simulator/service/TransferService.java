@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -105,11 +106,6 @@ public class TransferService {
 
             BigDecimal settledAmount = convert(amount, fromCard.getCurrency(), toCard.getCurrency());
 
-            fromCard.setBalance(fromCard.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP));
-            toCard.setBalance(toCard.getBalance().add(settledAmount).setScale(2, RoundingMode.HALF_UP));
-            cardRepository.save(fromCard);
-            cardRepository.save(toCard);
-
             Transaction tx = new Transaction();
             tx.setId(UUID.randomUUID().toString());
             tx.setFromCard(fromCardNumber);
@@ -122,6 +118,29 @@ public class TransferService {
             tx.setStatus(TransactionStatus.COMPLETED);
             tx.setCreatedAt(Instant.now());
             tx.setIdempotencyKey(idempotencyKey);
+
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                // Reserve the key — and flush immediately — before touching any
+                // balance, so a concurrent request with the same key fails here
+                // (via the unique constraint) instead of after money has moved.
+                try {
+                    transactionRepository.saveAndFlush(tx);
+                } catch (DataIntegrityViolationException raceLost) {
+                    return transactionRepository.findByIdempotencyKey(idempotencyKey)
+                            .orElseThrow(() -> raceLost);
+                }
+
+                fromCard.setBalance(fromCard.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP));
+                toCard.setBalance(toCard.getBalance().add(settledAmount).setScale(2, RoundingMode.HALF_UP));
+                cardRepository.save(fromCard);
+                cardRepository.save(toCard);
+                return tx;
+            }
+
+            fromCard.setBalance(fromCard.getBalance().subtract(amount).setScale(2, RoundingMode.HALF_UP));
+            toCard.setBalance(toCard.getBalance().add(settledAmount).setScale(2, RoundingMode.HALF_UP));
+            cardRepository.save(fromCard);
+            cardRepository.save(toCard);
             return transactionRepository.save(tx);
 
         } catch (IllegalArgumentException ex) {
