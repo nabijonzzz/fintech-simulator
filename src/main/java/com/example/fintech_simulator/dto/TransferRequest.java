@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -23,5 +24,6 @@ public class TransferRequest {
 
     // Optional: lets a client safely retry the same request (e.g. after a
     // timeout) without risking a duplicate transfer.
+    @Size(max = 100, message = "idempotencyKey must be at most 100 characters")
     private String idempotencyKey;
 }
