@@ -148,6 +148,49 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void differentIdempotencyKeysForTheSameDetailsAreTreatedAsSeparateTransfers() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000008");
+        from.setOwnerName("Test Distinct Key Sender");
+        from.setBalance(new BigDecimal("100.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000009");
+        to.setOwnerName("Test Distinct Key Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest first = new TransferRequest();
+        first.setFromCard("9000000000000008");
+        first.setToCard("9000000000000009");
+        first.setAmount(new BigDecimal("20.00"));
+        first.setIdempotencyKey("distinct-key-a");
+
+        TransferRequest second = new TransferRequest();
+        second.setFromCard("9000000000000008");
+        second.setToCard("9000000000000009");
+        second.setAmount(new BigDecimal("20.00"));
+        second.setIdempotencyKey("distinct-key-b");
+
+        ResponseEntity<TransferResponse> firstResponse =
+                restTemplate.postForEntity("/api/transfer", first, TransferResponse.class);
+        ResponseEntity<TransferResponse> secondResponse =
+                restTemplate.postForEntity("/api/transfer", second, TransferResponse.class);
+
+        // Same amount/cards, but a different key each time — this is two real
+        // transfers, not a retry, so both should execute.
+        assertThat(secondResponse.getBody().getTransactionId())
+                .isNotEqualTo(firstResponse.getBody().getTransactionId());
+        assertThat(cardRepository.findById("9000000000000008").orElseThrow().getBalance())
+                .isEqualByComparingTo("60.00");
+        assertThat(cardRepository.findById("9000000000000009").orElseThrow().getBalance())
+                .isEqualByComparingTo("40.00");
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
