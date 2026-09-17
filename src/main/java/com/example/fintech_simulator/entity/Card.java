@@ -14,4 +14,9 @@ public class Card {
     private String ownerName;
     private BigDecimal balance;
     private String currency;
+
+    // Max total (in the card's own currency) that can go out as
+    // transfers/exchanges within a rolling calendar day — a basic
+    // fraud/risk control, same idea real card issuers use.
+    private BigDecimal dailyLimit;
 }
