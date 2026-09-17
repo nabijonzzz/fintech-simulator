@@ -198,6 +198,49 @@ class TransferServiceTest {
     }
 
     @Test
+    void rejectsTransferThatWouldExceedTheDailyLimit() {
+        Card from = card("1111111111111111", "A", "1000.00", "USD");
+        from.setDailyLimit(new BigDecimal("100.00"));
+        Card to = card("2222222222222222", "B", "0.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
+        when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
+
+        Transaction earlierToday = new Transaction();
+        earlierToday.setRequestedAmount(new BigDecimal("80.00"));
+        when(transactionRepository.findByFromCardAndStatusAndCreatedAtAfter(
+                eq("1111111111111111"), eq(TransactionStatus.COMPLETED), any()))
+                .thenReturn(List.of(earlierToday));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("30.00"), TransactionType.TRANSFER));
+
+        assertThat(ex.getMessage()).isEqualTo("Daily transfer limit exceeded");
+        assertThat(from.getBalance()).isEqualByComparingTo("1000.00");
+        verify(cardRepository, never()).save(any());
+    }
+
+    @Test
+    void allowsATransferThatStaysExactlyAtTheDailyLimit() {
+        Card from = card("1111111111111111", "A", "1000.00", "USD");
+        from.setDailyLimit(new BigDecimal("100.00"));
+        Card to = card("2222222222222222", "B", "0.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(from));
+        when(cardRepository.findById("2222222222222222")).thenReturn(Optional.of(to));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Transaction earlierToday = new Transaction();
+        earlierToday.setRequestedAmount(new BigDecimal("70.00"));
+        when(transactionRepository.findByFromCardAndStatusAndCreatedAtAfter(
+                eq("1111111111111111"), eq(TransactionStatus.COMPLETED), any()))
+                .thenReturn(List.of(earlierToday));
+
+        transferService.transferMoney(
+                "1111111111111111", "2222222222222222", new BigDecimal("30.00"), TransactionType.TRANSFER);
+
+        assertThat(from.getBalance()).isEqualByComparingTo("970.00");
+    }
+
+    @Test
     void rejectsSelfTransfer() {
         assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
                 "1111111111111111", "1111111111111111", new BigDecimal("10.00"), TransactionType.TRANSFER));
