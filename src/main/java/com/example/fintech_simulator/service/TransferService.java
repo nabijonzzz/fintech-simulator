@@ -64,6 +64,16 @@ public class TransferService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    // Null means the card has no configured daily limit.
+    public BigDecimal getRemainingDailyLimit(String cardNumber) {
+        Card card = getCardDetails(cardNumber);
+        if (card.getDailyLimit() == null) {
+            return null;
+        }
+        BigDecimal remaining = card.getDailyLimit().subtract(getTodaysOutgoingTotal(cardNumber));
+        return remaining.max(BigDecimal.ZERO);
+    }
+
     private BigDecimal getRateToUsd(String currency) {
         switch (currency) {
             case "USD": return new BigDecimal("1.00");

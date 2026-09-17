@@ -58,6 +58,11 @@ public class TransferController {
         return transferService.getHistory(cardNumber);
     }
 
+    @GetMapping("/limit/{cardNumber}")
+    public BigDecimal getRemainingDailyLimit(@PathVariable String cardNumber) {
+        return transferService.getRemainingDailyLimit(cardNumber);
+    }
+
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> makeTransfer(@Valid @RequestBody TransferRequest request) {
         Transaction tx = transferService.transferMoney(request.getFromCard(), request.getToCard(),
