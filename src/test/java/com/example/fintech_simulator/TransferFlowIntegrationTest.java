@@ -191,6 +191,45 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void secondTransferThatWouldExceedTheDailyLimitIsRejected() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000010");
+        from.setOwnerName("Test Limit Sender");
+        from.setBalance(new BigDecimal("1000.00"));
+        from.setCurrency("USD");
+        from.setDailyLimit(new BigDecimal("100.00"));
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000011");
+        to.setOwnerName("Test Limit Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest first = new TransferRequest();
+        first.setFromCard("9000000000000010");
+        first.setToCard("9000000000000011");
+        first.setAmount(new BigDecimal("70.00"));
+        ResponseEntity<TransferResponse> firstResponse =
+                restTemplate.postForEntity("/api/transfer", first, TransferResponse.class);
+        assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        TransferRequest second = new TransferRequest();
+        second.setFromCard("9000000000000010");
+        second.setToCard("9000000000000011");
+        second.setAmount(new BigDecimal("40.00"));
+        ResponseEntity<ErrorResponse> secondResponse =
+                restTemplate.postForEntity("/api/transfer", second, ErrorResponse.class);
+
+        assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(secondResponse.getBody().getMessage()).isEqualTo("Daily transfer limit exceeded");
+        // Only the first (70) went through — balance reflects that, not both.
+        assertThat(cardRepository.findById("9000000000000010").orElseThrow().getBalance())
+                .isEqualByComparingTo("930.00");
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
