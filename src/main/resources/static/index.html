@@ -282,6 +282,7 @@
                             <select id="txFrom" class="form-select form-select-dark w-100" required>
                                 <option value="" disabled selected>Select account...</option>
                             </select>
+                            <div id="txDailyLimit" class="text-muted" style="font-size: 0.75rem; margin-top: 4px;"></div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Beneficiary Card Number</label>
@@ -759,6 +760,7 @@
         document.getElementById('txAmountWarning').style.display = 'none';
         document.getElementById('txToInfo').style.display = 'none';
         document.getElementById('txToCount').innerText = '0/16 digits';
+        document.getElementById('txDailyLimit').innerText = '';
         document.getElementById('txTo').style.borderColor = 'var(--border-color)';
         const submitBtn = document.getElementById('txSubmitBtn');
         submitBtn.disabled = false;
@@ -775,7 +777,24 @@
         submitBtn.style.opacity = '1';
     }
 
+    function showDailyLimitRemaining() {
+        const fromCardNum = document.getElementById('txFrom').value;
+        const limitDiv = document.getElementById('txDailyLimit');
+        if (!fromCardNum) { limitDiv.innerText = ''; return; }
+
+        fetch(`/api/limit/${fromCardNum}`)
+        .then(r => r.json())
+        .then(remaining => {
+            const fromCard = cachedCards.find(c => c.cardNumber === fromCardNum);
+            const sym = currencySymbols[fromCard?.currency] || '';
+            limitDiv.innerText = remaining === null
+                ? ''
+                : `${sym}${formatCurrencyValue(remaining)} left of today's transfer limit`;
+        });
+    }
+
     document.getElementById('txFrom').addEventListener('change', checkSufficientFunds);
+    document.getElementById('txFrom').addEventListener('change', showDailyLimitRemaining);
     document.getElementById('txAmount').addEventListener('input', checkSufficientFunds);
 
     document.getElementById('txTo').addEventListener('input', function() {
