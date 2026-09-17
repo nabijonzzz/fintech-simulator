@@ -119,6 +119,13 @@ public class TransferService {
                 throw new IllegalArgumentException("Not enough money on sender card");
             }
 
+            if (fromCard.getDailyLimit() != null) {
+                BigDecimal spentToday = getTodaysOutgoingTotal(fromCardNumber);
+                if (spentToday.add(amount).compareTo(fromCard.getDailyLimit()) > 0) {
+                    throw new IllegalArgumentException("Daily transfer limit exceeded");
+                }
+            }
+
             BigDecimal settledAmount = convert(amount, fromCard.getCurrency(), toCard.getCurrency());
 
             Transaction tx = new Transaction();
