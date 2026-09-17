@@ -3,6 +3,7 @@ package com.example.fintech_simulator.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,18 @@ public class TransferService {
 
     public List<Transaction> getHistory(String cardNumber) {
         return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber);
+    }
+
+    // Sum of everything successfully sent out from this card since midnight
+    // (UTC) — counted in the card's own currency, since requestedAmount is
+    // always in the sender's currency regardless of transfer/exchange type.
+    public BigDecimal getTodaysOutgoingTotal(String cardNumber) {
+        Instant startOfToday = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        return transactionRepository
+                .findByFromCardAndStatusAndCreatedAtAfter(cardNumber, TransactionStatus.COMPLETED, startOfToday)
+                .stream()
+                .map(Transaction::getRequestedAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal getRateToUsd(String currency) {
