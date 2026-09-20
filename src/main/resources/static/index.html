@@ -294,6 +294,7 @@
                             <label class="form-label">Amount</label>
                             <input type="number" step="0.01" min="0.01" id="txAmount" class="form-control form-control-dark" placeholder="0.00" required>
                             <div id="txAmountWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Insufficient funds on source account</div>
+                            <div id="txLimitWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Exceeds today's remaining transfer limit</div>
                         </div>
                         <button type="submit" id="txSubmitBtn" class="btn btn-echo w-100">Confirm & Send</button>
                         <button type="button" class="btn w-100 mt-2" style="background:transparent; border:1px solid var(--border-color); color:var(--text-secondary);" onclick="clearTransferForm()">Clear</button>
@@ -369,6 +370,9 @@
     const currencyFlags = { "USD": "🇺🇸 USD", "EUR": "🇪🇺 EUR", "GBP": "🇬🇧 GBP" };
     const MY_OWNER_NAME = "Nabijon Nazarov";
     let cachedCards = [];
+    // Remaining daily limit for whichever account is selected in each form
+    // (null = no limit / nothing selected yet).
+    const remainingLimits = { tx: null, ex: null };
     let activeCurrencyFilter = 'ALL';
     try {
         activeCurrencyFilter = localStorage.getItem('echo_currency_filter') || 'ALL';
@@ -746,22 +750,27 @@
         const fromCardNum = document.getElementById('txFrom').value;
         const amount = parseFloat(document.getElementById('txAmount').value);
         const warning = document.getElementById('txAmountWarning');
+        const limitWarning = document.getElementById('txLimitWarning');
         const submitBtn = document.getElementById('txSubmitBtn');
 
         const fromCard = cachedCards.find(c => c.cardNumber === fromCardNum);
-        const insufficient = fromCard && amount > 0 && amount > fromCard.balance;
+        const insufficient = !!(fromCard && amount > 0 && amount > fromCard.balance);
+        const overLimit = remainingLimits.tx !== null && amount > remainingLimits.tx;
 
         warning.style.display = insufficient ? 'block' : 'none';
-        submitBtn.disabled = insufficient;
-        submitBtn.style.opacity = insufficient ? '0.5' : '1';
+        limitWarning.style.display = overLimit ? 'block' : 'none';
+        submitBtn.disabled = insufficient || overLimit;
+        submitBtn.style.opacity = (insufficient || overLimit) ? '0.5' : '1';
     }
 
     function clearTransferForm() {
         document.getElementById('transferForm').reset();
         document.getElementById('txAmountWarning').style.display = 'none';
+        document.getElementById('txLimitWarning').style.display = 'none';
         document.getElementById('txToInfo').style.display = 'none';
         document.getElementById('txToCount').innerText = '0/16 digits';
         document.getElementById('txDailyLimit').innerText = '';
+        remainingLimits.tx = null;
         document.getElementById('txTo').style.borderColor = 'var(--border-color)';
         const submitBtn = document.getElementById('txSubmitBtn');
         submitBtn.disabled = false;
@@ -781,25 +790,30 @@
 
     // Transfers and exchanges draw from the same daily limit, so both forms
     // show it the same way.
-    function showDailyLimitRemaining(selectId, limitDivId) {
+    function showDailyLimitRemaining(formKey, selectId, limitDivId, onLoaded) {
         const fromCardNum = document.getElementById(selectId).value;
         const limitDiv = document.getElementById(limitDivId);
+        remainingLimits[formKey] = null;
         if (!fromCardNum) { limitDiv.innerText = ''; return; }
 
         fetch(`/api/limit/${fromCardNum}`)
         .then(r => r.json())
         .then(remaining => {
+            remainingLimits[formKey] = remaining;
             const fromCard = cachedCards.find(c => c.cardNumber === fromCardNum);
             const sym = currencySymbols[fromCard?.currency] || '';
             limitDiv.innerText = remaining === null
                 ? ''
                 : `${sym}${formatCurrencyValue(remaining)} left of today's transfer limit`;
+            if (onLoaded) onLoaded();
         });
     }
 
     document.getElementById('txFrom').addEventListener('change', checkSufficientFunds);
-    document.getElementById('txFrom').addEventListener('change', () => showDailyLimitRemaining('txFrom', 'txDailyLimit'));
-    document.getElementById('exFrom').addEventListener('change', () => showDailyLimitRemaining('exFrom', 'exDailyLimit'));
+    document.getElementById('txFrom').addEventListener('change',
+        () => showDailyLimitRemaining('tx', 'txFrom', 'txDailyLimit', checkSufficientFunds));
+    document.getElementById('exFrom').addEventListener('change',
+        () => showDailyLimitRemaining('ex', 'exFrom', 'exDailyLimit'));
     document.getElementById('txAmount').addEventListener('input', checkSufficientFunds);
 
     document.getElementById('txTo').addEventListener('input', function() {
