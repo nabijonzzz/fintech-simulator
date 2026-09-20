@@ -307,6 +307,7 @@
                             <select id="exFrom" class="form-select form-select-dark w-100" required>
                                 <option value="" disabled selected>Select account to debit...</option>
                             </select>
+                            <div id="exDailyLimit" class="text-muted" style="font-size: 0.75rem; margin-top: 4px;"></div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label">Credit Account (Buy)</label>
@@ -770,6 +771,7 @@
     function clearExchangeForm() {
         document.getElementById('exchangeForm').reset();
         document.getElementById('exAmountWarning').style.display = 'none';
+        document.getElementById('exDailyLimit').innerText = '';
         document.getElementById('liveExchangeRate').classList.add('d-none');
         lastCalculatedValue = 0;
         const submitBtn = document.getElementById('exSubmitBtn');
@@ -777,9 +779,11 @@
         submitBtn.style.opacity = '1';
     }
 
-    function showDailyLimitRemaining() {
-        const fromCardNum = document.getElementById('txFrom').value;
-        const limitDiv = document.getElementById('txDailyLimit');
+    // Transfers and exchanges draw from the same daily limit, so both forms
+    // show it the same way.
+    function showDailyLimitRemaining(selectId, limitDivId) {
+        const fromCardNum = document.getElementById(selectId).value;
+        const limitDiv = document.getElementById(limitDivId);
         if (!fromCardNum) { limitDiv.innerText = ''; return; }
 
         fetch(`/api/limit/${fromCardNum}`)
@@ -794,7 +798,8 @@
     }
 
     document.getElementById('txFrom').addEventListener('change', checkSufficientFunds);
-    document.getElementById('txFrom').addEventListener('change', showDailyLimitRemaining);
+    document.getElementById('txFrom').addEventListener('change', () => showDailyLimitRemaining('txFrom', 'txDailyLimit'));
+    document.getElementById('exFrom').addEventListener('change', () => showDailyLimitRemaining('exFrom', 'exDailyLimit'));
     document.getElementById('txAmount').addEventListener('input', checkSufficientFunds);
 
     document.getElementById('txTo').addEventListener('input', function() {
