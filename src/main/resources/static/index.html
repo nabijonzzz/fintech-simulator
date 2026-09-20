@@ -946,6 +946,14 @@
                     form.reset();
                     document.getElementById('txToInfo').style.display = 'none';
                     document.getElementById('txTo').style.borderColor = 'var(--border-color)';
+                    // reset() unselects the account, so the old "left today" figure
+                    // (now out of date anyway) and its warnings shouldn't linger.
+                    document.getElementById('txDailyLimit').innerText = '';
+                    document.getElementById('exDailyLimit').innerText = '';
+                    document.getElementById('txLimitWarning').style.display = 'none';
+                    document.getElementById('exLimitWarning').style.display = 'none';
+                    remainingLimits.tx = null;
+                    remainingLimits.ex = null;
                     document.getElementById('liveExchangeRate').classList.add('d-none');
                     loadDashboard();
                 } else {
