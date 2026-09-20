@@ -320,6 +320,7 @@
                             <label class="form-label">Amount to Sell</label>
                             <input type="number" step="0.01" min="0.01" id="exAmount" class="form-control form-control-dark" placeholder="0.00" required>
                             <div id="exAmountWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Insufficient funds on debit account</div>
+                            <div id="exLimitWarning" class="info-box text-danger" style="display:none;" aria-live="polite">✕ Exceeds today's remaining transfer limit</div>
                         </div>
                         
                         <div id="liveExchangeRate" class="live-rate-box d-none">
@@ -780,7 +781,9 @@
     function clearExchangeForm() {
         document.getElementById('exchangeForm').reset();
         document.getElementById('exAmountWarning').style.display = 'none';
+        document.getElementById('exLimitWarning').style.display = 'none';
         document.getElementById('exDailyLimit').innerText = '';
+        remainingLimits.ex = null;
         document.getElementById('liveExchangeRate').classList.add('d-none');
         lastCalculatedValue = 0;
         const submitBtn = document.getElementById('exSubmitBtn');
@@ -813,7 +816,7 @@
     document.getElementById('txFrom').addEventListener('change',
         () => showDailyLimitRemaining('tx', 'txFrom', 'txDailyLimit', checkSufficientFunds));
     document.getElementById('exFrom').addEventListener('change',
-        () => showDailyLimitRemaining('ex', 'exFrom', 'exDailyLimit'));
+        () => showDailyLimitRemaining('ex', 'exFrom', 'exDailyLimit', calculateLiveExchange));
     document.getElementById('txAmount').addEventListener('input', checkSufficientFunds);
 
     document.getElementById('txTo').addEventListener('input', function() {
@@ -856,14 +859,17 @@
         const rateBox = document.getElementById('liveExchangeRate');
         const submitBtn = document.getElementById('exSubmitBtn');
         const warning = document.getElementById('exAmountWarning');
-        const sameCard = fromCardNum && fromCardNum === toCardNum;
+        const limitWarning = document.getElementById('exLimitWarning');
+        const sameCard = !!(fromCardNum && fromCardNum === toCardNum);
 
         const fromCardForCheck = cachedCards.find(c => c.cardNumber === fromCardNum);
-        const insufficient = fromCardForCheck && amount > 0 && amount > fromCardForCheck.balance;
+        const insufficient = !!(fromCardForCheck && amount > 0 && amount > fromCardForCheck.balance);
+        const overLimit = remainingLimits.ex !== null && amount > remainingLimits.ex;
 
         warning.style.display = insufficient ? 'block' : 'none';
-        submitBtn.disabled = sameCard || insufficient;
-        submitBtn.style.opacity = (sameCard || insufficient) ? '0.5' : '1';
+        limitWarning.style.display = overLimit ? 'block' : 'none';
+        submitBtn.disabled = sameCard || insufficient || overLimit;
+        submitBtn.style.opacity = (sameCard || insufficient || overLimit) ? '0.5' : '1';
 
         if (!amount || !fromCardNum || !toCardNum || fromCardNum === toCardNum) {
             rateBox.classList.add('d-none');
