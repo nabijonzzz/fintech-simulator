@@ -241,6 +241,44 @@ class TransferServiceTest {
     }
 
     @Test
+    void remainingDailyLimitIsNullWhenTheCardHasNoLimit() {
+        Card c = card("1111111111111111", "A", "100.00", "USD");
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(c));
+
+        assertThat(transferService.getRemainingDailyLimit("1111111111111111")).isNull();
+    }
+
+    @Test
+    void remainingDailyLimitSubtractsWhatWasAlreadySpentToday() {
+        Card c = card("1111111111111111", "A", "1000.00", "USD");
+        c.setDailyLimit(new BigDecimal("100.00"));
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(c));
+
+        Transaction spent = new Transaction();
+        spent.setRequestedAmount(new BigDecimal("35.00"));
+        when(transactionRepository.findByFromCardAndStatusAndCreatedAtAfter(
+                eq("1111111111111111"), eq(TransactionStatus.COMPLETED), any()))
+                .thenReturn(List.of(spent));
+
+        assertThat(transferService.getRemainingDailyLimit("1111111111111111")).isEqualByComparingTo("65.00");
+    }
+
+    @Test
+    void remainingDailyLimitNeverGoesBelowZero() {
+        Card c = card("1111111111111111", "A", "1000.00", "USD");
+        c.setDailyLimit(new BigDecimal("50.00"));
+        when(cardRepository.findById("1111111111111111")).thenReturn(Optional.of(c));
+
+        Transaction spent = new Transaction();
+        spent.setRequestedAmount(new BigDecimal("80.00"));
+        when(transactionRepository.findByFromCardAndStatusAndCreatedAtAfter(
+                eq("1111111111111111"), eq(TransactionStatus.COMPLETED), any()))
+                .thenReturn(List.of(spent));
+
+        assertThat(transferService.getRemainingDailyLimit("1111111111111111")).isEqualByComparingTo("0.00");
+    }
+
+    @Test
     void rejectsSelfTransfer() {
         assertThrows(IllegalArgumentException.class, () -> transferService.transferMoney(
                 "1111111111111111", "1111111111111111", new BigDecimal("10.00"), TransactionType.TRANSFER));
