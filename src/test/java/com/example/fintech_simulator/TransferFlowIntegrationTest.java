@@ -347,6 +347,16 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void nonNumericPageParamReturnsAStructuredBadRequest() {
+        ResponseEntity<ErrorResponse> response = restTemplate.exchange(
+                "/api/transactions/1111222233334444?page=abc", HttpMethod.GET, null, ErrorResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getStatus()).isEqualTo(400);
+        assertThat(response.getBody().getMessage()).isNotBlank();
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
