@@ -3,6 +3,7 @@ package com.example.fintech_simulator;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -232,6 +233,55 @@ class TransferFlowIntegrationTest {
         // Only the first (70) went through — balance reflects that, not both.
         assertThat(cardRepository.findById("9000000000000010").orElseThrow().getBalance())
                 .isEqualByComparingTo("930.00");
+    }
+
+    @Test
+    void historyIsSplitAcrossPagesInTheRequestedSize() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000012");
+        from.setOwnerName("Test Paging Sender");
+        from.setBalance(new BigDecimal("1000.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000013");
+        to.setOwnerName("Test Paging Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        // 5 separate transfers -> 5 ledger entries for the sender.
+        for (int i = 0; i < 5; i++) {
+            TransferRequest request = new TransferRequest();
+            request.setFromCard("9000000000000012");
+            request.setToCard("9000000000000013");
+            request.setAmount(new BigDecimal("1.00"));
+            restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+        }
+
+        ResponseEntity<PagedResponse<TransactionResponse>> firstPage = restTemplate.exchange(
+                "/api/transactions/9000000000000012?page=0&size=2", HttpMethod.GET, null,
+                new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() { });
+        ResponseEntity<PagedResponse<TransactionResponse>> secondPage = restTemplate.exchange(
+                "/api/transactions/9000000000000012?page=1&size=2", HttpMethod.GET, null,
+                new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() { });
+        ResponseEntity<PagedResponse<TransactionResponse>> lastPage = restTemplate.exchange(
+                "/api/transactions/9000000000000012?page=2&size=2", HttpMethod.GET, null,
+                new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() { });
+
+        assertThat(firstPage.getBody().getContent()).hasSize(2);
+        assertThat(secondPage.getBody().getContent()).hasSize(2);
+        assertThat(lastPage.getBody().getContent()).hasSize(1);
+        assertThat(firstPage.getBody().getTotalElements()).isEqualTo(5);
+        assertThat(firstPage.getBody().getTotalPages()).isEqualTo(3);
+
+        // No overlap between pages — every id shows up exactly once across all three.
+        List<String> allIds = new ArrayList<>();
+        firstPage.getBody().getContent().forEach(tx -> allIds.add(tx.getId()));
+        secondPage.getBody().getContent().forEach(tx -> allIds.add(tx.getId()));
+        lastPage.getBody().getContent().forEach(tx -> allIds.add(tx.getId()));
+        assertThat(allIds).doesNotHaveDuplicates().hasSize(5);
     }
 
     @Test
