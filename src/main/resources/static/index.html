@@ -346,6 +346,7 @@
                         <button type="button" id="exportCsvBtn" class="filter-btn" onclick="exportHistoryCsv()" disabled style="opacity:0.5;">Export CSV</button>
                     </div>
                     <div id="history-list"></div>
+                    <button type="button" id="loadMoreHistoryBtn" class="filter-btn w-100 mt-3" style="display:none;" onclick="loadMoreHistory()">Load more</button>
                 </div>
 
                 <div id="tab-markets" class="d-none">
@@ -430,7 +431,7 @@
         document.getElementById(`tab-${tabName}`).classList.remove('d-none');
 
         if (tabName === 'dashboard') loadDashboard();
-        if (tabName === 'history') loadTransactionHistory();
+        if (tabName === 'history') { historyVisibleCount = 10; loadTransactionHistory(); }
         if (tabName === 'markets') renderStocksList();
     }
 
@@ -673,6 +674,7 @@
     }
 
     let lastHistoryData = [];
+    let historyVisibleCount = 10;
 
     function exportHistoryCsv() {
         if (lastHistoryData.length === 0) return;
@@ -692,22 +694,39 @@
         URL.revokeObjectURL(url);
     }
 
+    function loadMoreHistory() {
+        historyVisibleCount += 10;
+        loadTransactionHistory();
+    }
+
     function loadTransactionHistory() {
         document.getElementById('history-loading').style.display = 'block';
 
-        Promise.all(cachedCards.map(c => fetch(`/api/transactions/${c.cardNumber}`).then(r => r.json())))
+        // Each card's history is paginated server-side; asking each for as many
+        // as we currently want to show (rather than everything) is what
+        // actually exercises that, not just the UI slicing a big array.
+        Promise.all(cachedCards.map(c =>
+            fetch(`/api/transactions/${c.cardNumber}?page=0&size=${historyVisibleCount}`).then(r => r.json())
+        ))
             .then(results => {
                 document.getElementById('history-loading').style.display = 'none';
 
                 const merged = new Map();
-                results.flat().forEach(tx => merged.set(tx.id, tx));
+                let maxTotalElements = 0;
+                results.forEach(pageResult => {
+                    pageResult.content.forEach(tx => merged.set(tx.id, tx));
+                    maxTotalElements = Math.max(maxTotalElements, pageResult.totalElements);
+                });
                 const sorted = Array.from(merged.values())
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                    .slice(0, historyVisibleCount);
                 lastHistoryData = sorted;
 
                 const listDiv = document.getElementById('history-list');
                 const countDiv = document.getElementById('history-count');
                 const exportBtn = document.getElementById('exportCsvBtn');
+                const loadMoreBtn = document.getElementById('loadMoreHistoryBtn');
+                loadMoreBtn.style.display = sorted.length < maxTotalElements ? 'block' : 'none';
 
                 if (sorted.length === 0) {
                     countDiv.innerText = '';
@@ -719,7 +738,7 @@
 
                 exportBtn.disabled = false;
                 exportBtn.style.opacity = '1';
-                countDiv.innerText = `${sorted.length} transaction${sorted.length === 1 ? '' : 's'}`;
+                countDiv.innerText = `Showing ${sorted.length} of ${maxTotalElements} transaction${maxTotalElements === 1 ? '' : 's'}`;
 
                 listDiv.innerHTML = sorted.map(tx => {
                     const isOutgoing = cachedCards.some(c => c.cardNumber === tx.fromCard);
