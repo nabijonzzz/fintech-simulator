@@ -41,7 +41,7 @@ Open [http://localhost:8080](http://localhost:8080) — it seeds a few demo card
 |---|---|---|
 | GET | `/api/cards` | List all cards |
 | GET | `/api/card/{cardNumber}` | One card's details |
-| GET | `/api/transactions/{cardNumber}` | Transaction history for a card |
+| GET | `/api/transactions/{cardNumber}?page&size` | Paginated transaction history for a card (size capped at 500) |
 | GET | `/api/limit/{cardNumber}` | Remaining daily transfer limit for a card |
 | GET | `/api/rate/convert?amount&from&to` | Convert an amount between currencies |
 | POST | `/api/transfer` | `{ fromCard, toCard, amount, idempotencyKey? }` |
@@ -56,6 +56,12 @@ The idempotency key works the same way for both outcomes: before doing anything,
 That first check alone isn't enough under real concurrency, though — two identical requests could both pass the "not found" check before either one saves. So the actual write order is: build the transaction record and `saveAndFlush` it — under the column's unique constraint — *before* touching any balance. Whichever request loses that race gets a `DataIntegrityViolationException` right there, with nothing moved yet, and just re-reads and returns the winner's row. The one that wins proceeds to update the balances as normal. That ordering is what makes it safe — if the balance update happened first, the loser would have already moved money by the time its insert failed.
 
 The daily limit check works off the same ledger rather than a separate running total: it sums `requestedAmount` for every `COMPLETED` transaction sent from that card since midnight, and compares against the card's `dailyLimit`. No extra counter to keep in sync, no risk of it drifting from what the ledger actually says happened — the ledger is already the source of truth for everything else, so it made sense to lean on it here too.
+
+## API responses, not raw entities
+
+The controllers never hand back JPA entities directly — every response goes through a DTO (`CardResponse`, `TransactionResponse`, `PagedResponse<T>`). It's a small thing but it matters: the entity is free to grow internal-only fields (like the idempotency key) without those leaking into the API, and the wire format stays stable even if the entity's shape changes later.
+
+Transaction history is paginated for the same reason a raw entity dump would've been a problem: an account's ledger only grows, so returning the whole thing on every request doesn't scale. `GET /api/transactions/{cardNumber}` takes `page`/`size` query params and returns a `PagedResponse` (content + page/size/totalElements/totalPages), with `size` capped at 500 server-side so a bad or malicious query can't force one huge fetch. The frontend shows the 10 most recent by default with a "Load more" button, and CSV export walks every page in the background so the export still captures full history even though the on-screen list doesn't.
 
 ## License
 
