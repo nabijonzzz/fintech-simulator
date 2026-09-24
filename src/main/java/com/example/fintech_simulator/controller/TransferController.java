@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.fintech_simulator.dto.CardResponse;
 import com.example.fintech_simulator.dto.ExchangeRequest;
+import com.example.fintech_simulator.dto.TransactionResponse;
 import com.example.fintech_simulator.dto.TransferRequest;
 import com.example.fintech_simulator.dto.TransferResponse;
 import com.example.fintech_simulator.entity.Transaction;
@@ -54,8 +55,8 @@ public class TransferController {
     }
 
     @GetMapping("/transactions/{cardNumber}")
-    public List<Transaction> getHistory(@PathVariable String cardNumber) {
-        return transferService.getHistory(cardNumber);
+    public List<TransactionResponse> getHistory(@PathVariable String cardNumber) {
+        return transferService.getHistory(cardNumber).stream().map(TransactionResponse::from).toList();
     }
 
     @GetMapping("/limit/{cardNumber}")
