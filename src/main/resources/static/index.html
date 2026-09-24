@@ -673,25 +673,35 @@
         });
     }
 
-    let lastHistoryData = [];
     let historyVisibleCount = 10;
 
     function exportHistoryCsv() {
-        if (lastHistoryData.length === 0) return;
+        // Export everything, not just whatever page is currently on screen —
+        // ask each card for a page big enough to cover its whole history.
+        Promise.all(cachedCards.map(c =>
+            fetch(`/api/transactions/${c.cardNumber}?page=0&size=1000000`).then(r => r.json())
+        )).then(results => {
+            const merged = new Map();
+            results.forEach(pageResult => pageResult.content.forEach(tx => merged.set(tx.id, tx)));
+            const all = Array.from(merged.values())
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        const header = 'Date,Type,Status,From Card,To Card,Requested Amount,From Currency,Settled Amount,To Currency\n';
-        const rows = lastHistoryData.map(tx => [
-            tx.createdAt, tx.type, tx.status, tx.fromCard, tx.toCard,
-            tx.requestedAmount, tx.fromCurrency || '', tx.settledAmount || '', tx.toCurrency || ''
-        ].join(',')).join('\n');
+            if (all.length === 0) return;
 
-        const blob = new Blob([header + rows], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'transaction-history.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+            const header = 'Date,Type,Status,From Card,To Card,Requested Amount,From Currency,Settled Amount,To Currency\n';
+            const rows = all.map(tx => [
+                tx.createdAt, tx.type, tx.status, tx.fromCard, tx.toCard,
+                tx.requestedAmount, tx.fromCurrency || '', tx.settledAmount || '', tx.toCurrency || ''
+            ].join(',')).join('\n');
+
+            const blob = new Blob([header + rows], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'transaction-history.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
     }
 
     function loadMoreHistory() {
@@ -720,7 +730,6 @@
                 const sorted = Array.from(merged.values())
                     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
                     .slice(0, historyVisibleCount);
-                lastHistoryData = sorted;
 
                 const listDiv = document.getElementById('history-list');
                 const countDiv = document.getElementById('history-count');
