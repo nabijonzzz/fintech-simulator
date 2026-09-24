@@ -18,7 +18,6 @@ import com.example.fintech_simulator.dto.CardResponse;
 import com.example.fintech_simulator.dto.ExchangeRequest;
 import com.example.fintech_simulator.dto.TransferRequest;
 import com.example.fintech_simulator.dto.TransferResponse;
-import com.example.fintech_simulator.entity.Card;
 import com.example.fintech_simulator.entity.Transaction;
 import com.example.fintech_simulator.entity.TransactionType;
 import com.example.fintech_simulator.service.TransferService;
@@ -50,8 +49,8 @@ public class TransferController {
     }
 
     @GetMapping("/card/{cardNumber}")
-    public Card getCardInfo(@PathVariable String cardNumber) {
-        return transferService.getCardDetails(cardNumber);
+    public CardResponse getCardInfo(@PathVariable String cardNumber) {
+        return CardResponse.from(transferService.getCardDetails(cardNumber));
     }
 
     @GetMapping("/transactions/{cardNumber}")
