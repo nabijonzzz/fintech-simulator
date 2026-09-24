@@ -285,6 +285,37 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void requestingAnOversizedPageGetsClampedInsteadOfReturningEverything() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000014");
+        from.setOwnerName("Test Cap Sender");
+        from.setBalance(new BigDecimal("1000.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000015");
+        to.setOwnerName("Test Cap Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest request = new TransferRequest();
+        request.setFromCard("9000000000000014");
+        request.setToCard("9000000000000015");
+        request.setAmount(new BigDecimal("1.00"));
+        restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+
+        ResponseEntity<PagedResponse<TransactionResponse>> hugePage = restTemplate.exchange(
+                "/api/transactions/9000000000000014?page=0&size=1000000", HttpMethod.GET, null,
+                new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() { });
+
+        assertThat(hugePage.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(hugePage.getBody().getSize()).isEqualTo(500);
+        assertThat(hugePage.getBody().getContent()).hasSize(1);
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
