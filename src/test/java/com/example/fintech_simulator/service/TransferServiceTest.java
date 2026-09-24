@@ -386,4 +386,18 @@ class TransferServiceTest {
         assertThat(captor.getValue().getPageNumber()).isEqualTo(0);
         assertThat(captor.getValue().getPageSize()).isEqualTo(1);
     }
+
+    @Test
+    void getHistoryPageClampsSizeAboveTheMax() {
+        when(transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        transferService.getHistoryPage("1111111111111111", 0, 1_000_000);
+
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(transactionRepository).findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), captor.capture());
+        assertThat(captor.getValue().getPageSize()).isEqualTo(TransferService.MAX_PAGE_SIZE);
+    }
 }

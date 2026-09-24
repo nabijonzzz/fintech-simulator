@@ -55,10 +55,14 @@ public class TransferService {
         return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber);
     }
 
+    public static final int MAX_PAGE_SIZE = 500;
+
     public Page<Transaction> getHistoryPage(String cardNumber, int page, int size) {
         // The repository query already orders by createdAt desc, so no
-        // separate Sort is needed here — just the page window.
-        PageRequest pageRequest = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.unsorted());
+        // separate Sort is needed here — just the page window. Size is capped
+        // so a bad or malicious query param can't force one huge DB fetch.
+        int clampedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        PageRequest pageRequest = PageRequest.of(Math.max(page, 0), clampedSize, Sort.unsorted());
         return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber, pageRequest);
     }
 

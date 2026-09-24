@@ -675,14 +675,28 @@
 
     let historyVisibleCount = 10;
 
+    // The backend caps page size at 500, so a card with more history than that
+    // needs more than one request to fully export.
+    async function fetchFullHistory(cardNumber) {
+        const pageSize = 500;
+        const all = [];
+        let page = 0;
+        while (true) {
+            const res = await fetch(`/api/transactions/${cardNumber}?page=${page}&size=${pageSize}`);
+            const data = await res.json();
+            all.push(...data.content);
+            if (page >= data.totalPages - 1) break;
+            page++;
+        }
+        return all;
+    }
+
     function exportHistoryCsv() {
         // Export everything, not just whatever page is currently on screen —
-        // ask each card for a page big enough to cover its whole history.
-        Promise.all(cachedCards.map(c =>
-            fetch(`/api/transactions/${c.cardNumber}?page=0&size=1000000`).then(r => r.json())
-        )).then(results => {
+        // walk every page for each card so nothing gets left out.
+        Promise.all(cachedCards.map(c => fetchFullHistory(c.cardNumber))).then(results => {
             const merged = new Map();
-            results.forEach(pageResult => pageResult.content.forEach(tx => merged.set(tx.id, tx)));
+            results.forEach(txs => txs.forEach(tx => merged.set(tx.id, tx)));
             const all = Array.from(merged.values())
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
