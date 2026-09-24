@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.fintech_simulator.dto.CardResponse;
 import com.example.fintech_simulator.dto.ExchangeRequest;
 import com.example.fintech_simulator.dto.TransferRequest;
 import com.example.fintech_simulator.dto.TransferResponse;
@@ -44,8 +45,8 @@ public class TransferController {
     }
 
     @GetMapping("/cards")
-    public List<Card> getAllCards() {
-        return transferService.getAllCards();
+    public List<CardResponse> getAllCards() {
+        return transferService.getAllCards().stream().map(CardResponse::from).toList();
     }
 
     @GetMapping("/card/{cardNumber}")
