@@ -18,6 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import com.example.fintech_simulator.entity.Card;
 import com.example.fintech_simulator.entity.Transaction;
@@ -348,5 +351,39 @@ class TransferServiceTest {
                 .thenReturn(List.of(tx));
 
         assertThat(transferService.getHistory("1111111111111111")).containsExactly(tx);
+    }
+
+    @Test
+    void getHistoryPagePassesThroughThePageWindow() {
+        Transaction tx = new Transaction();
+        tx.setId("t1");
+        Page<Transaction> page = new PageImpl<>(List.of(tx));
+        when(transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), any(PageRequest.class)))
+                .thenReturn(page);
+
+        Page<Transaction> result = transferService.getHistoryPage("1111111111111111", 2, 10);
+
+        assertThat(result.getContent()).containsExactly(tx);
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(transactionRepository).findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), captor.capture());
+        assertThat(captor.getValue().getPageNumber()).isEqualTo(2);
+        assertThat(captor.getValue().getPageSize()).isEqualTo(10);
+    }
+
+    @Test
+    void getHistoryPageClampsNegativePageAndZeroSize() {
+        when(transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), any(PageRequest.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        transferService.getHistoryPage("1111111111111111", -5, 0);
+
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(transactionRepository).findByFromCardOrToCardOrderByCreatedAtDesc(
+                eq("1111111111111111"), eq("1111111111111111"), captor.capture());
+        assertThat(captor.getValue().getPageNumber()).isEqualTo(0);
+        assertThat(captor.getValue().getPageSize()).isEqualTo(1);
     }
 }
