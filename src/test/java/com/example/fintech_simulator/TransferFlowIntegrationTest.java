@@ -316,6 +316,37 @@ class TransferFlowIntegrationTest {
     }
 
     @Test
+    void requestingANegativePageFallsBackToTheFirstPageInsteadOfErroring() {
+        Card from = new Card();
+        from.setCardNumber("9000000000000016");
+        from.setOwnerName("Test Negative Page Sender");
+        from.setBalance(new BigDecimal("1000.00"));
+        from.setCurrency("USD");
+        cardRepository.save(from);
+
+        Card to = new Card();
+        to.setCardNumber("9000000000000017");
+        to.setOwnerName("Test Negative Page Receiver");
+        to.setBalance(new BigDecimal("0.00"));
+        to.setCurrency("USD");
+        cardRepository.save(to);
+
+        TransferRequest request = new TransferRequest();
+        request.setFromCard("9000000000000016");
+        request.setToCard("9000000000000017");
+        request.setAmount(new BigDecimal("1.00"));
+        restTemplate.postForEntity("/api/transfer", request, TransferResponse.class);
+
+        ResponseEntity<PagedResponse<TransactionResponse>> response = restTemplate.exchange(
+                "/api/transactions/9000000000000016?page=-1&size=10", HttpMethod.GET, null,
+                new ParameterizedTypeReference<PagedResponse<TransactionResponse>>() { });
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getPage()).isEqualTo(0);
+        assertThat(response.getBody().getContent()).hasSize(1);
+    }
+
+    @Test
     void rejectsTransferWithInvalidCardNumberFormat() {
         TransferRequest request = new TransferRequest();
         request.setFromCard("not-a-card");
