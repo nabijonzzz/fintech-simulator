@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,6 +53,13 @@ public class TransferService {
 
     public List<Transaction> getHistory(String cardNumber) {
         return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber);
+    }
+
+    public Page<Transaction> getHistoryPage(String cardNumber, int page, int size) {
+        // The repository query already orders by createdAt desc, so no
+        // separate Sort is needed here — just the page window.
+        PageRequest pageRequest = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.unsorted());
+        return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber, pageRequest);
     }
 
     // Sum of everything successfully sent out from this card since midnight
