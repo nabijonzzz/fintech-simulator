@@ -12,8 +12,6 @@ import com.example.fintech_simulator.entity.Transaction;
 import com.example.fintech_simulator.entity.TransactionStatus;
 
 public interface TransactionRepository extends JpaRepository<Transaction, String> {
-    List<Transaction> findByFromCardOrToCardOrderByCreatedAtDesc(String fromCard, String toCard);
-
     Page<Transaction> findByFromCardOrToCardOrderByCreatedAtDesc(String fromCard, String toCard, Pageable pageable);
 
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);

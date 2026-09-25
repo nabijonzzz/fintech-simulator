@@ -51,10 +51,6 @@ public class TransferService {
         return cards;
     }
 
-    public List<Transaction> getHistory(String cardNumber) {
-        return transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc(cardNumber, cardNumber);
-    }
-
     public static final int MAX_PAGE_SIZE = 500;
 
     public Page<Transaction> getHistoryPage(String cardNumber, int page, int size) {

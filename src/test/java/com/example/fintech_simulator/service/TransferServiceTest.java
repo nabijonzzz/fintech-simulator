@@ -344,16 +344,6 @@ class TransferServiceTest {
     }
 
     @Test
-    void getHistoryQueriesTransactionsForTheCardOnBothSides() {
-        Transaction tx = new Transaction();
-        tx.setId("t1");
-        when(transactionRepository.findByFromCardOrToCardOrderByCreatedAtDesc("1111111111111111", "1111111111111111"))
-                .thenReturn(List.of(tx));
-
-        assertThat(transferService.getHistory("1111111111111111")).containsExactly(tx);
-    }
-
-    @Test
     void getHistoryPagePassesThroughThePageWindow() {
         Transaction tx = new Transaction();
         tx.setId("t1");
