@@ -42,4 +42,29 @@ class TransactionAuditLoggerTest {
         assertThat(saved.getFailureReason()).isEqualTo("Not enough money on sender card");
         assertThat(saved.getCreatedAt()).isNotNull();
     }
+
+    @Test
+    void logFailureStoresTheIdempotencyKeySoRetriesReplayTheSameFailure() {
+        TransactionAuditLogger logger = new TransactionAuditLogger(transactionRepository);
+
+        logger.logFailure("1111111111111111", "2222222222222222",
+                new BigDecimal("50.00"), TransactionType.EXCHANGE, "Daily transfer limit exceeded", "retry-key");
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getIdempotencyKey()).isEqualTo("retry-key");
+        assertThat(captor.getValue().getType()).isEqualTo(TransactionType.EXCHANGE);
+    }
+
+    @Test
+    void logFailureWithoutAKeyLeavesItNull() {
+        TransactionAuditLogger logger = new TransactionAuditLogger(transactionRepository);
+
+        logger.logFailure("1111111111111111", "2222222222222222",
+                new BigDecimal("5.00"), TransactionType.TRANSFER, "Amount must be more than 0");
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        assertThat(captor.getValue().getIdempotencyKey()).isNull();
+    }
 }
