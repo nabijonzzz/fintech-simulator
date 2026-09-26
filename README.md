@@ -35,6 +35,8 @@ Open [http://localhost:8080](http://localhost:8080) — it seeds a few demo card
 ./mvnw test
 ```
 
+The suite (50+ tests) mixes fast Mockito unit tests for the service logic, the audit logger and the exception handler, DTO mapping and validation tests, and integration tests that run the real app against an in-memory H2 database — covering transfers, idempotent retries, daily limits and pagination end to end.
+
 ## API
 
 | Method | Endpoint | What it does |
